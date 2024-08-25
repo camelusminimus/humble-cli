@@ -5,6 +5,7 @@ use std::cmp::min;
 use std::fs::File;
 use std::io::{Seek, Write};
 use std::time::Duration;
+use tokio::time::timeout;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DownloadError {
@@ -80,7 +81,8 @@ async fn _download_file(
     let pb = get_progress_bar(total_size);
     pb.set_message(format!("Downloading {}", title));
 
-    while let Some(chunk) = stream.next().await {
+    let chunk_timeout = Duration::from_secs(60);
+    while let Ok(Some(chunk)) = timeout(chunk_timeout, stream.next()).await {
         let chunk = chunk?;
         let _ = file.write(&chunk)?;
 
